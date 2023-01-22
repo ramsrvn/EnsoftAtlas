@@ -1,0 +1,30 @@
+Preliminary steps
+1) Add C commons as Shell dependency
+2) Add import com.ensoftcorp.open.c.commons.analysis.CommonQueries._
+ to initialization script
+3) Click Ok to restart Shell.
+
+Getting type node(s) representing the structure.
+var dreq = structs("dreq")
+
+roots of dreq_variables represent variables of type struct dreq or struct *dreq.
+var dreq_variables = typeEdges().reverse(dreq)
+
+var dreq_instances = dreq_variables.nodes(XCSG.InstanceVariable)
+Explanation: XCSG.InstanceVariable is the node kind representing field of a struct. 
+We are selecting variable definintions that are fields of a struct.
+
+var dreq_parent_types = dreq_instances.containers.nodes(XCSG.Type)
+show(dreq_parent_types)
+
+Note: Above set of queries find immediate containers of a given type.
+To find all container types, we will have to repeat the procedure on dreq_parent_types until we don't find any instance variables.
+
+Now we can reuse the function parameter queries on dreq_parent_types. Pasted them below for convenience. 
+Note that struct dreq is self-referential, contains a field of type struct *dreq, and hence is captured in dreq_parent_types.
+
+var ref_dreq_parent_types = ref(dreq_parent_types)
+var parameters_ref_dreq_parent_types = functionParameter(parameters_ref_dreq_parent_types)
+var parameters_dreq_parent_types = typeEdges().between(parameters_ref_dreq_parent_types, dreq_parent_types)
+var parameter_functions = parameters_dreq_parent_types.containers.nodes(XCSG.Function)
+var intersection = parameters_ref_dreq_parent_types.intersection(parameter_functions)

@@ -1,0 +1,33 @@
+/**
+	 * Returns the Matching Pair Graph for given object and event functions
+	 * @param e1Functions: L function node(s)
+	 * @param e2Functions: U function node(s)
+	 * @param object: type node
+	 * @return the matching pair graph for object (object)
+	 */
+	public static Q mpg(Q e1Functions, Q e2Functions, Q object){
+		Q callL = call(e1Functions);
+		Q callU = call(e2Functions);
+		if(object.eval().nodes().one().taggedWith(XCSG.GlobalVariable)){
+			callL = callL.intersection(refVariable(object));
+			callU = callU.intersection(refVariable(object));
+		}else if(object.eval().nodes().one().taggedWith(XCSG.C.Struct)){
+			callL = callL.intersection(refType(object));
+			callU = callU.intersection(refType(object));
+		}
+		Q rcg_lock = edges(XCSG.Call).reverse(callL);
+		Q rcg_unlock = edges(XCSG.Call).reverse(callU);
+		Q rcg_both = rcg_lock.intersection(rcg_unlock);
+		Q rcg_c = rcg_lock.union(rcg_unlock);
+		Q rcg_lock_only = rcg_lock.difference(rcg_both);
+		Q rcg_unlock_only = rcg_unlock.difference(rcg_both);
+		Q call_lock_only = callL.union(edges(XCSG.Call).reverseStep(rcg_lock_only));
+		Q call_unlock_only = callU.union(edges(XCSG.Call).reverseStep(rcg_unlock_only));
+		Q call_c_only = call_lock_only.union(call_unlock_only);
+		Q balanced = call_c_only.intersection(rcg_both);
+		Q ubc = balanced.union(rcg_lock_only, rcg_unlock_only);
+		Q mpg = rcg_c.intersection(edges(XCSG.Call).forward(ubc));
+		mpg = mpg.union(e1Functions, e2Functions);
+		mpg = mpg.induce(edges(XCSG.Call));
+		return mpg;
+	}

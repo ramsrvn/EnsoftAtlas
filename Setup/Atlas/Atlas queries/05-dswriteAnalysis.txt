@@ -1,0 +1,33 @@
+Preliminary steps
+1) Add C commons as Shell dependency
+2) Add import com.ensoftcorp.open.c.commons.analysis.CommonQueries._
+ to initialization script
+3) Click Ok to restart Shell.
+
+Getting Call Graph of function
+var dswrite = functions("dswrite")
+var fcg_dswrite = cg(dswrite)
+or
+var fcg_dswrite = universe.edges(XCSG.Call).forward(dswrite)
+show(fcg_dswrite)
+
+Getting functions that access pointer of type struct dreq
+var dreq = structs("dreq")
+var ref_dreq = ref(dreq)
+show(ref_dreq)
+(Note that ref_dreq excludes both getbuf and freebuf as getbuf and freebuf are type agnostic; their parameter is a void pointer. We can modify the ref query to include void pointers but that will add too many false positives. So it is better to add getbuf and freebuf later manually)
+
+Intersect the two and add back getbuf and freebuf
+var approximation1 = fcg_dswrite.intersection(ref_dreq)
+approximation1 = approximation1.union(functions("getbuf")).union(functions("freebuf"))
+approximation1 = approximation1.induce(universe.edges(XCSG.Call))
+
+Interesting points
+1) approximation1 captures dskstrt which is not relevant.
+2) approximation2 misses dsinter which is relevant.
+
+Refining approximation1.
+We will filter ref_dreq such that only functions that access struct dreq via parameter are captured.
+var ref_dreq_parameters = functionParameter(ref_dreq)
+var type_matched_parameters = typeEdges().between(ref_dreq_parameters,dreq).retainEdges
+var filtered_functions = type_matched_parameters.roots.containers.nodes(XCSG.Function)
